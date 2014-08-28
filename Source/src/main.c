@@ -8,7 +8,7 @@
 //#define ARM_MATH_CM4
 
 #include "main.h"
-
+#include "debug_display.h"
 
 // ----------------------------------------------------------------------------
 //
@@ -514,7 +514,7 @@ main(int argc, char* argv[])
 
 	//initDdsPins();
 	hal_setupPins();
-	spi_init();
+	new_spi_init();
 
 	timer_start();
 
@@ -563,9 +563,16 @@ main(int argc, char* argv[])
 		//Also since this is a form of direct conversion receiver (two of them together) I was worried about AM broadcast interference
 		//but I haven't noticed any, again, maybe I did something right? Beginner's luck?
 
-		updateMenu();
-		updateDisplay(0);
-		drawWaterfall();
+		if (vfoAFrequency == 37500000 && filterLowerLimit > 0)
+		{
+		  debug_display();
+		  Adafruit_GFX_fillScreen(ILI9340_BLACK);
+		  updateDisplay(1);
+		} else {
+		  updateMenu();
+		  updateDisplay(0);
+		  drawWaterfall();
+		}
 	}
 }
 

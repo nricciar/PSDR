@@ -10,8 +10,82 @@
 #include <stm32f4xx_hal_spi.h>
 #include <stm32f4xx_hal_gpio.h>
 #include <stm32f4xx_hal.h>
+#include "stm32f4xx.h"
+
+void new_spi_init(void)
+{
+    GPIO_InitTypeDef gpioInitStructure;
+    DMA_HandleTypeDef dma_is;
+
+    HAL_SPI_MspInit(&SpiHandle);
+
+    __SPI1_CLK_ENABLE();
+    __DMA2_CLK_ENABLE();
+
+    // SPI2 SCK and MOSI
+    gpioInitStructure.Pin   = SPI1_SCK.pin;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
+    gpioInitStructure.Mode  = GPIO_MODE_AF_PP;
+    gpioInitStructure.Alternate = GPIO_AF5_SPI1;
+    gpioInitStructure.Pull  = GPIO_NOPULL;
+    HAL_GPIO_Init(SPI1_SCK.port, &gpioInitStructure);
+
+    gpioInitStructure.Pin   = SPI1_MOSI.pin;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
+    gpioInitStructure.Mode  = GPIO_MODE_AF_PP;
+    gpioInitStructure.Pull  = GPIO_NOPULL;
+    gpioInitStructure.Alternate = GPIO_AF5_SPI1;
+    HAL_GPIO_Init(SPI1_MOSI.port, &gpioInitStructure);
+
+    // SPI2 MISO
+    gpioInitStructure.Pin   = SPI1_MISO.pin;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
+    gpioInitStructure.Mode  = GPIO_MODE_INPUT;
+    gpioInitStructure.Pull = GPIO_PULLUP;
+    gpioInitStructure.Alternate = GPIO_AF5_SPI1;
+    HAL_GPIO_Init(SPI1_MISO.port, &gpioInitStructure);
+
+    // RFID NSS
+    gpioInitStructure.Pin   = LCD_NSS.pin;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
+    gpioInitStructure.Mode  = GPIO_MODE_OUTPUT_PP;
+    gpioInitStructure.Pull  = GPIO_NOPULL;
+    gpioInitStructure.Alternate = 0;
+    HAL_GPIO_Init(LCD_NSS.port, &gpioInitStructure);
+    HAL_GPIO_WritePin(LCD_NSS.port, LCD_NSS.pin, 1);       // TBD - should this be before init?
+
+    SpiHandle.Instance = SPI1;
+    SpiHandle.Init.Direction = SPI_DIRECTION_2LINES;
+    SpiHandle.Init.Mode = SPI_MODE_MASTER;
+    SpiHandle.Init.DataSize = SPI_DATASIZE_8BIT;
+    SpiHandle.Init.FirstBit = SPI_FIRSTBIT_MSB;
+    SpiHandle.Init.TIMode = SPI_TIMODE_DISABLED;
+    SpiHandle.Init.NSS = SPI_NSS_SOFT;
+    SpiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+    SpiHandle.Init.CLKPhase = SPI_PHASE_2EDGE;
+    SpiHandle.Init.CLKPolarity = SPI_POLARITY_HIGH;
+    SpiHandle.Init.CRCPolynomial = 7;
+    HAL_SPI_Init(&SpiHandle);
 
 
+    HAL_DMA_DeInit(&dma_is);
+    dma_is.Instance = DMA2_Stream3;
+	dma_is.Init.Channel = DMA_CHANNEL_3;
+	dma_is.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+	dma_is.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+	dma_is.Init.MemInc = DMA_MINC_ENABLE;
+	dma_is.Init.Direction = DMA_MEMORY_TO_PERIPH;
+	dma_is.Init.PeriphInc = DMA_PINC_DISABLE;
+	dma_is.Init.Mode = DMA_NORMAL;
+    dma_is.Init.Priority = DMA_PRIORITY_HIGH;
+    dma_is.Init.MemBurst = DMA_MBURST_SINGLE;
+    dma_is.Init.PeriphBurst = DMA_PBURST_SINGLE;
+	dma_is.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+	HAL_DMA_Init(&dma_is);
+
+	// FIXME:  hdmatx is not correct, but im not sure what is either
+	__HAL_LINKDMA(SpiHandle, hdmatx, dma_is);
+}
 void spi_init(void)
 {
     SPI_InitTypeDef  spiInitStructure;
@@ -23,7 +97,7 @@ void spi_init(void)
 
     // SPI2 SCK and MOSI
     gpioInitStructure.Pin   = SPI1_SCK.pin;
-    gpioInitStructure.Speed = GPIO_SPEED_FAST;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
     gpioInitStructure.Mode  = GPIO_MODE_AF_PP;
     gpioInitStructure.Alternate = GPIO_AF5_SPI1;
     gpioInitStructure.Pull  = GPIO_NOPULL;
@@ -31,7 +105,7 @@ void spi_init(void)
     HAL_GPIO_Init(SPI1_SCK.port, &gpioInitStructure);
 
     gpioInitStructure.Pin   = SPI1_MOSI.pin;
-    gpioInitStructure.Speed = GPIO_SPEED_FAST;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
     gpioInitStructure.Mode  = GPIO_MODE_AF_PP;
     gpioInitStructure.Pull  = GPIO_NOPULL;
     gpioInitStructure.Alternate = GPIO_AF5_SPI1;
@@ -39,7 +113,7 @@ void spi_init(void)
 
     // SPI2 MISO
     gpioInitStructure.Pin   = SPI1_MISO.pin;
-    gpioInitStructure.Speed = GPIO_SPEED_FAST;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
     gpioInitStructure.Mode  = GPIO_MODE_INPUT;
     gpioInitStructure.Pull = GPIO_PULLUP;
     gpioInitStructure.Alternate = GPIO_AF5_SPI1;
@@ -47,7 +121,7 @@ void spi_init(void)
 
     // RFID NSS
     gpioInitStructure.Pin   = LCD_NSS.pin;
-    gpioInitStructure.Speed = GPIO_SPEED_FAST;
+    gpioInitStructure.Speed = GPIO_SPEED_HIGH;
     gpioInitStructure.Mode  = GPIO_MODE_OUTPUT_PP;
     gpioInitStructure.Pull  = GPIO_NOPULL;
     gpioInitStructure.Alternate = 0;
@@ -61,7 +135,6 @@ void spi_init(void)
 //    gpioInitStructure.Alternate = GPIO_AF5_SPI1;
 //    HAL_GPIO_Init(LCD_NSS.port, &gpioInitStructure);
 //    //HAL_GPIO_WritePin(LCD_NSS.port, LCD_NSS.pin, 1);       // TBD - should this be before init?
-
 
     SpiHandle.Instance 				  = SPI1;
     SpiHandle.Init.Direction 		  = SPI_DIRECTION_2LINES;
@@ -108,11 +181,11 @@ void spi_init(void)
 //
 //    spi2Semaphore = 1;
 //}
-
 void spi_readWrite(SPI_HandleTypeDef SpiH, uint8_t* rxBuf, uint8_t* txBuf, int cnt)
 {
 	//HAL_SPI_TransmitReceive(&SpiHandle, txBuf, rxBuf, cnt, 1000);
-	HAL_SPI_Transmit(&SpiHandle, txBuf, cnt, 1);
+	//HAL_SPI_Transmit(&SpiHandle, txBuf, cnt, 1);
+	HAL_SPI_Transmit_DMA(&SpiHandle, txBuf, cnt);
 
 //	//High, second edge
 //	//We're going to bitbang it for now, I guess
